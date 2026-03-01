@@ -7,6 +7,7 @@ interface FeatureFlagsPayload {
 }
 
 export const FEATURE_FLAGS_CONFIG_INVALID = "FEATURE_FLAGS_CONFIG_INVALID";
+const DEFAULT_FEATURE_FLAGS: FeatureFlags = { requirePhoneVerification: false };
 
 const isFeatureFlagsPayload = (value: unknown): value is FeatureFlagsPayload => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
@@ -24,14 +25,20 @@ export const parseFeatureFlagsPayload = (value: unknown): FeatureFlags => {
 };
 
 export const fetchFeatureFlags = async (): Promise<FeatureFlags> => {
-  const { supabase } = await import("@/integrations/supabase/client");
-  const { data, error } = await supabase.functions.invoke("get-feature-flags", {
-    body: {},
-  });
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data, error } = await supabase.functions.invoke("get-feature-flags", {
+      body: {},
+    });
 
-  if (error) {
-    throw new Error(error.message || FEATURE_FLAGS_CONFIG_INVALID);
+    if (error) {
+      throw new Error(error.message || FEATURE_FLAGS_CONFIG_INVALID);
+    }
+
+    return parseFeatureFlagsPayload(data);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : FEATURE_FLAGS_CONFIG_INVALID;
+    console.warn("[Verity] Feature flags unavailable; defaulting to fail-open policy.", detail);
+    return DEFAULT_FEATURE_FLAGS;
   }
-
-  return parseFeatureFlagsPayload(data);
 };
