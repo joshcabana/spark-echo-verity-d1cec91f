@@ -18,6 +18,7 @@ bun.lockb.deprecated
 .env.*
 !.env.example
 !.env.production
+.local_quarantine/
 
 # Editor directories and files
 .vscode/*

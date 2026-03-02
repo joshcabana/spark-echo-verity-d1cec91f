@@ -8,6 +8,12 @@ Permanent ownership migration from Lovable-managed Supabase to user-owned Supaba
 - Supabase URL: `https://lixgbpgemcpdbjzhjknf.supabase.co`
 - Primary domain: `https://getverity.com.au`
 
+## Latest Execution Snapshot
+- Timestamp: `2026-03-02 17:46:48 AEDT`
+- Branch/HEAD: `main` @ `66cc5711ba88`
+- Source sync check: `git fetch origin` + `git log --oneline -n 5 origin/main` (PASS)
+- Final status: **Not strict-mode launch-ready yet**
+
 ## Completed Actions
 1. Created new user-owned Supabase project in org `mhjhvysqwuekjmjuizjr`.
    - Name: `verity-prod-owned`
@@ -35,6 +41,10 @@ Permanent ownership migration from Lovable-managed Supabase to user-owned Supaba
 8. Merged PR #21 QA hardening updates into `main`.
    - Merge commit: `c4482aa`
    - Includes refreshed generated Supabase types, `featureFlags` static import hardening, and lint warning debt cleanup in eslint config.
+9. Executed final closure verification bundle on canonical repo state.
+   - Commit checked: `66cc571`
+   - Runbook phases fully completed: 0, 2, 6
+   - Runbook phases blocked externally/manual: 1, 3, 4, 5, 7
 
 ## Verification Outputs
 
@@ -65,17 +75,29 @@ Permanent ownership migration from Lovable-managed Supabase to user-owned Supaba
 ### Live endpoint checks
 - `https://getverity.com.au` serves bundle: `assets/index-BMlIffKM.js`
 - Routes return `200`: `/`, `/auth`, `/onboarding`, `/lobby`, `/tokens`
-- `https://getverity.com` still serves legacy HTML redirect script to `/lander`
+- `https://getverity.com` and `https://www.getverity.com` still serve legacy HTML redirect script to `/lander` (HTTP `200`, not canonical 301/302)
 - DNS A records:
   - `getverity.com`: `15.197.148.33`, `3.33.130.190` (legacy)
   - `getverity.com.au`: `185.158.133.1`
-- Post-merge note:
-  - frontend auto-publish has not occurred yet (bundle hash unchanged after merge)
-  - browser automation is currently unavailable in this environment (`Playwright transport closed`)
+- frontend publish note:
+  - frontend publish from hosting control plane has not been performed since `origin/main` advanced to `66cc571` (bundle hash unchanged)
 
 ### New backend function check (owned project)
 Direct call to `https://lixgbpgemcpdbjzhjknf.supabase.co/functions/v1/get-feature-flags`
-- Response: `{ "require_phone_verification": false }`
+- Unauthenticated request: `401 Missing authorization header`
+- Authenticated request (`apikey` + `Authorization: Bearer $VITE_SUPABASE_PUBLISHABLE_KEY`):
+  - Response: `{ "require_phone_verification": false }`
+
+## Runbook Gate Status
+- Phase 0 (preflight): PASS
+- Phase 1 (publish latest frontend): BLOCKED (publish not triggered; bundle still `index-BMlIffKM.js`)
+- Phase 2 (policy and drift): PASS
+- Phase 3 (auth providers): PARTIAL (`external.email=true`, `external.phone=false`)
+- Phase 4 (domain finalization): BLOCKED (legacy A records still active; no `.com` -> `.com.au` 301/302)
+- Phase 5 (strict mode): BLOCKED by Phase 3 precondition (`external.phone=true`)
+- Phase 6 (QA regression): PASS
+- Phase 7 (production E2E): PENDING manual execution
+- Phase 8 (evidence/signoff): IN PROGRESS (E2E timestamp artifact pending)
 
 ## Remaining External Steps (not code-blocked)
 1. Publish latest frontend build from hosting control plane (Lovable) so production bundle moves off `index-BMlIffKM.js` to a post-cutover hash.
@@ -93,3 +115,4 @@ Direct call to `https://lixgbpgemcpdbjzhjknf.supabase.co/functions/v1/get-featur
 ## Notes
 - Client fail-open continuity is already in `main` from PR #19.
 - DB remains source of truth for phone verification policy (`app_config.auth_policy`).
+- Strict mode must remain OFF until Twilio OTP provider is confirmed and production E2E passes.
