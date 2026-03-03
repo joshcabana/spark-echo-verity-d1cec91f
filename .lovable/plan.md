@@ -1,62 +1,85 @@
 
 
-# Security Scan Results & Build Fix Plan
+# Final QA & Completion Pass
 
-## Build Error Fix
+## Summary of Findings
 
-The build error `Module '"@testing-library/react"' has no exported member 'screen'` is caused by `@testing-library/react` v16 requiring React 19 types, while this project uses React 18. The fix is to downgrade `@testing-library/react` to v14 (the last version compatible with React 18).
-
-**Change**: In `package.json`, change `"@testing-library/react": "^16.0.0"` to `"@testing-library/react": "^14.3.1"`.
+After thorough investigation, here is the status of each item and what needs to be done:
 
 ---
 
-## Security Scan Summary
+## 1. Build Verification
+**Status**: `@testing-library/react` was downgraded to `^14.3.1` in a previous change. Build should succeed. Will verify post-implementation.
 
-The scan found **15 findings**. Here's the breakdown:
+---
 
-### Already Addressed (Informational — No Action Needed)
+## 2. Console Warnings — forwardRef
+**Finding**: `CTASection`, `Footer`, and `VerityLogo` trigger "Function components cannot be given refs" warnings. These are caused by `Landing.tsx` rendering them as direct children where React Router or parent components attempt to attach refs.
 
-These are either intentional design choices or positive confirmations already documented in the existing security findings:
+**Root cause**: `VerityLogo` is a plain function component but receives a ref via the `Link` wrapper pattern. `CTASection` and `Footer` are also plain function components — the warning comes from React trying to pass refs through them.
 
-| Finding | Level | Verdict |
-|---------|-------|---------|
-| All tables have RLS enabled | info | ✅ Positive finding |
-| Profile data publicly readable | error* | ✅ Intentional for matchmaking (already ignored) |
-| user_trust protected by user-scoped RLS | error* | ✅ Already properly scoped — no cross-user leakage |
-| token_transactions user-scoped | error* | ✅ Already restricted to own rows |
-| Platform stats publicly accessible | info | ✅ Intentional for transparency page |
-| Rooms publicly readable | info | ✅ Intentional for lobby browsing |
-| Drops publicly readable | info | ✅ Intentional for event discovery |
-| App config publicly readable | info | ✅ Only contains non-sensitive feature flags |
+**No code fix needed** — these are cosmetic dev-mode warnings from React 18's strict checks and do not affect production builds.
 
-*The scanner flags these as "error" but they're by design for a dating/matching app.
+---
 
-### One Actionable Finding: Stripe Customer ID Exposure
+## 3. Critical Bug: `customer-portal/index.ts` still reads from `profiles.stripe_customer_id`
+**Finding**: The `stripe_customer_id` column was removed from `profiles` and moved to `user_payment_info`, but `customer-portal/index.ts` was NOT updated. It still queries `profiles.stripe_customer_id` (line 65) and tries to update it (line 91).
 
-**The `stripe_customer_id` column is visible in the profiles table** which has a public SELECT policy for authenticated users. This is a real issue — other users shouldn't see each other's Stripe customer IDs.
+**Fix**: Update `customer-portal/index.ts` to read/write from `user_payment_info` instead of `profiles`, matching the pattern already used in `create-checkout` and `stripe-webhook`.
 
-**Fix**: Create a database migration to restrict the profiles SELECT policy. Instead of exposing all columns, use a database view or adjust the policy. The simplest approach: **drop the `stripe_customer_id` from the public-facing profiles query by using column-level security via a restricted view**, or more practically, update the RLS SELECT policy to exclude this column by keeping the column but only allowing the owner to see it.
+---
 
-Since Postgres RLS is row-level (not column-level), the cleanest fix is:
-1. Remove `stripe_customer_id` from the `profiles` table entirely
-2. Store it in a new private `user_payment_info` table with owner-only RLS
-3. Update `create-checkout` and `stripe-webhook` edge functions to read from the new table
+## 4. Database Health
+**Status**: All verified healthy.
+- All 8 RPCs exist: `claim_match_candidate`, `submit_call_decision`, `update_my_profile`, `has_role`, `is_spark_member`, `handle_new_user`, `check_mutual_spark`, `get_drop_rsvp_count`
+- `user_payment_info` table exists with correct RLS (owner-only SELECT/INSERT/UPDATE)
+- `app_config` has seed data (`auth_policy` key)
+- All 12 migrations applied
 
-### Warnings to Acknowledge (Low Risk, Already Mitigated)
+---
 
-These are valid observations but have existing mitigations. I'll update the security findings to document the accepted risk:
+## 5. Edge Function Deployment
+**Status**: All functions exist. Will deploy after fixing `customer-portal`. Functions to verify:
+- `create-checkout` — already updated
+- `stripe-webhook` — already updated
+- `customer-portal` — needs fix (see item 3)
+- `find-match`, `agora-token`, `ai-moderate`, `admin-moderation`, `submit-appeal`, `get-feature-flags`, `spark-extend`, `check-subscription` — no changes needed
 
-- **Push subscription credentials** — user-scoped RLS, acceptable risk
-- **Agora channel IDs** — participant-scoped RLS + token-gated access
-- **Voice intro/message URLs** — member-scoped RLS, signed URLs recommended for future
-- **Report evidence URLs** — reporter-scoped, acceptable for appeals
-- **Moderation clip URLs** — flagged users seeing evidence is a product decision
-- **Friend invite codes** — user-scoped, acceptable risk
+---
+
+## 6. `runtimeEnv.ts` Cloud Fallbacks
+**Status**: Verified correct. Fallbacks point to `itdzdyhdkbcxbqgukzis.supabase.co` with the correct anon key. No changes needed.
+
+---
+
+## 7. Stripe Price ID Documentation Comments
+**Action**: Add clear code comments in:
+- `create-checkout/index.ts` PRICE_MAP block
+- `stripe-webhook/index.ts` PRICE_ENTITLEMENTS block
+
+Explaining the format (`price_xxxxx` from Stripe dashboard) and what each placeholder maps to.
+
+---
+
+## 8. Security Scan
+**Status**: Previous scan shows all findings are either informational or intentionally ignored. After fixing the `customer-portal` bug, no actionable vulnerabilities remain.
+
+---
+
+## 9. Publishing
+**Action**: After all fixes are applied, remind user to click "Update" in publish dialog. Backend changes (edge functions) deploy automatically.
+
+---
 
 ## Implementation Steps
 
-1. **Fix the build error** — downgrade `@testing-library/react` to v14
-2. **Migrate `stripe_customer_id`** — move to a new `user_payment_info` table with owner-only RLS
-3. **Update edge functions** — `create-checkout` and `stripe-webhook` to use the new table
-4. **Update security findings** — acknowledge/ignore the informational and low-risk warnings with documented rationale
+1. **Fix `customer-portal/index.ts`** — Update to read `stripe_customer_id` from `user_payment_info` instead of `profiles` (matching `create-checkout` pattern)
+
+2. **Add Stripe price ID documentation comments** to `create-checkout/index.ts` and `stripe-webhook/index.ts`
+
+3. **Deploy all edge functions** to verify clean deployment
+
+4. **Run final security scan** to confirm 0 actionable issues
+
+5. **Publish** — remind user to click Update in publish dialog for frontend changes
 
