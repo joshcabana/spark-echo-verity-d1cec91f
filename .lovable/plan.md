@@ -1,83 +1,56 @@
 
 
-# Rebuild Onboarding as a 3-Step Premium Wizard
+# Upgrade ExcitementStep with Real Agora Video Demo
 
-## Overview
+## Problem
 
-Replace the current 8-step `Onboarding.tsx` with a stunning 3-step wizard that front-loads excitement, streamlines sign-in, and defers verification to the final step. Reuses all existing Supabase auth, feature flags, phone/selfie verification, and trust persistence logic.
+The existing `agora-token` edge function requires authentication + a valid `call_id` from the `calls` table. Onboarding Step 1 users are **unauthenticated** — they can't call this function. We need a separate lightweight edge function for demo tokens.
 
 ## Architecture
 
 ```text
-Step 0: Excitement     → Step 1: Sign In       → Step 2: Verify & Go
-─────────────────       ──────────────────       ──────────────────
-Hero-style layout       Magic link email OTP     Safety pledge + phone/selfie
-Trust bullets           Reuse SignInStep logic    Feature flag aware
-"Watch demo" CTA        Auto-advance on auth     Success → Drop teaser → Lobby
-45s demo simulation     
+User clicks "Watch demo"
+  → POST /agora-demo-token (no auth required, rate-limited)
+  → Returns { token, appId, uid, channel: "verity-demo-45s" }
+  → useAgoraCall joins channel, shows local video + countdown
+  → At 0s: leave call, show Spark/Pass buttons
+  → On choice: mutual-spark reveal animation → auto-continue
 ```
 
 ## Files to Create/Modify
 
-### 1. `src/pages/Onboarding.tsx` — Full rewrite
+### 1. NEW: `supabase/functions/agora-demo-token/index.ts`
 
-- **3 steps** with `TOTAL_STEPS = 3`, amber progress bar at top
-- SEO: `document.title = "Verity Onboarding • Real chemistry in 45 seconds"`
-- Preserves `useAuth()`, `supabase.from("user_trust").upsert()`, resume logic
-- `AnimatePresence mode="wait"` between steps (same pattern as current)
-- Deep navy gradient background matching HeroSection aesthetic
-- On completion: sets `onboarding_complete: true` and navigates to `/lobby`
+Lightweight public edge function (no auth required):
+- Generates an Agora RTC token for channel `"verity-demo-45s"` with 60s expiry
+- Uses existing `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` secrets
+- Returns `{ token, appId, uid, channel }`
+- No database queries needed — this is a stateless demo token
 
-### 2. `src/components/onboarding/ExcitementStep.tsx` — New file
+### 2. MODIFY: `src/components/onboarding/ExcitementStep.tsx`
 
-- Full-screen hero layout mirroring `HeroSection.tsx` style
-- Headline: "Real chemistry in 45 seconds." with gold gradient text
-- Subtext: "No endless swiping. No rejection notifications. Just mutual spark."
-- Three trust bullets in elegant cards:
-  - "Anonymous until mutual spark"
-  - "Nothing stored if no connection"  
-  - "Verified 18+ members only"
-- Amber "Watch 45-second demo" button → triggers a simulated 45-second countdown overlay with pulsing anonymous silhouette animation (no actual Agora call — a simulated demo experience using Framer Motion)
-- After demo: "Anonymous until mutual spark" reveal animation, then "Continue" button
-- Uses existing `Button` (variant="gold"), `motion` animations, Lucide icons
+Replace the simulated countdown overlay with a real Agora video demo:
 
-### 3. `src/components/onboarding/MagicLinkStep.tsx` — New file
+- On "Watch 45-second demo" click:
+  1. Call `agora-demo-token` edge function
+  2. Log `AGORA_DEMO_START` and `AGORA_TOKEN_GENERATED`
+  3. Use `useAgoraCall` hook to join channel with local camera preview
+  4. Show fullscreen overlay with local video feed + countdown ring (45s)
+  5. At 0s or manual skip: call `leave()`, log `DEMO_ENDED`, show Spark/Pass buttons
+  6. On Spark click: log `SPARK_SELECTED`, show mutual-spark reveal animation, then auto-advance after 2s
+  7. On Pass: same flow (no ego damage — both choices lead to continue)
 
-- Headline: "One email. Instant magic."
-- Clean email input with `Mail` icon (reuses exact `Input` + `Button` from `SignInStep`)
-- Calls `supabase.auth.signInWithOtp({ email })` — same logic as existing `SignInStep`
-- OTP entry with mono-spaced 6-digit input
-- On verify success: sparkle animation "✨ Magic link verified!", auto-advance after 1.5s
-- "Use a different email" fallback link
-- Privacy note: "We never share your email. Ever."
+- **Test Mode toggle**: In dev (`import.meta.env.DEV`), show a small Switch in corner that reduces demo to 5 seconds
 
-### 4. `src/components/onboarding/VerifyStep.tsx` — New file
+- **Error fallback**: If Agora token fetch fails or camera denied, fall back to the existing simulated countdown (graceful degradation)
 
-- Headline: "Last step: Verify once" with subtext "Takes 12 seconds. Never asked again."
-- Combines safety pledge (checkbox from `SafetyPledgeStep`) + phone verification (from `PhoneVerifyStep`, respecting `requirePhoneVerification` flag) + selfie (from `SelfieStep`)
-- Accordion/sequential sub-steps within one view:
-  1. Safety pledge checkbox (always required)
-  2. Phone verification (conditional on feature flag, reuses `PhoneVerifyStep` logic inline)
-  3. Selfie verification (optional skip, reuses `SelfieStep` capture logic)
-- Privacy text: "AU Privacy Act compliant • Encrypted & deleted after check"
-- On all complete: success state with confetti-like sparkle animation
-  - "✅ Verified • You're in the next Drop!"
-  - Live teaser card: "Next Drop: Tonight 8pm • Tech Professionals" (fetches from `drops` table like `DropReadyStep`)
-  - Gold button → navigate to `/lobby`
+- Reuse existing `SparkPassButtons` component for the Spark/Pass UI
+- Mobile-first: Agora SDK handles mobile cameras natively, video container uses `aspect-video` responsive sizing
 
-### 5. No changes to
-
-- `ProtectedRoute.tsx` — already checks `onboarding_complete` and trust fields
-- `AuthContext.tsx` — `userTrust` shape unchanged
-- `user_trust` table — same columns used (`onboarding_step`, `onboarding_complete`, `safety_pledge_accepted`, `phone_verified`, `selfie_verified`)
-- Any edge functions or RLS policies
-- Existing onboarding sub-components remain in codebase (not deleted, just unused by new wizard)
-
-## Key Design Decisions
-
-- **No actual Agora demo call** — simulating a 45-second demo with Framer Motion countdown + silhouette animation is far more reliable and doesn't require token generation for unauthenticated users
-- **Magic link OTP (not password)** — matches the existing `SignInStep` flow exactly, keeps onboarding passwordless
-- **VerifyStep combines 3 sub-tasks** in one step to feel fast while still collecting all trust fields that `ProtectedRoute` checks
-- **Mobile-first** — all max-w-sm containers, touch-friendly targets, safe-area padding
-- **Zero new dependencies** — only uses framer-motion, lucide-react, shadcn components, and Supabase client already installed
+### 3. No changes to
+- `Onboarding.tsx` — step flow unchanged
+- `MagicLinkStep.tsx`, `VerifyStep.tsx` — untouched
+- `useAgoraCall.ts` — reused as-is
+- Existing `agora-token` edge function — untouched
+- Any RLS policies or database tables
 
