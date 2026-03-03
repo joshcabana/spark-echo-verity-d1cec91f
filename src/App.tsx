@@ -45,7 +45,7 @@ const LazyFallback = forwardRef<HTMLDivElement>((_, ref) => (
 ));
 LazyFallback.displayName = "LazyFallback";
 
-const App = forwardRef<HTMLDivElement>((_, ref) => (
+const App = () => (
   <HelmetProvider>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <QueryClientProvider client={queryClient}>
@@ -83,7 +83,6 @@ const App = forwardRef<HTMLDivElement>((_, ref) => (
       </QueryClientProvider>
     </ThemeProvider>
   </HelmetProvider>
-));
-App.displayName = "App";
+);
 
 export default App;
