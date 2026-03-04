@@ -55,7 +55,10 @@ const ChatComposer = ({ onSend, onTyping }: ChatComposerProps) => {
             ref={textareaRef}
             value={text}
             onChange={(e) => {
-              if (e.target.value.length <= MAX_CHARS) setText(e.target.value);
+              if (e.target.value.length <= MAX_CHARS) {
+                setText(e.target.value);
+                onTyping?.();
+              }
             }}
             onKeyDown={handleKeyDown}
             placeholder="Write a message…"
