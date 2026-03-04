@@ -33,7 +33,14 @@ interface SparkWithPartner {
 
 const SparkHistory = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [active, setActive] = useState<Filter>("All");
+
+  const { containerRef, pullDistance, isRefreshing } = usePullToRefresh({
+    onRefresh: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["sparks"] });
+    },
+  });
 
   const { data: sparks = [], isLoading: sparksLoading } = useQuery<SparkWithPartner[]>({
     queryKey: ["sparks", user?.id],
