@@ -278,6 +278,17 @@ const Admin = () => {
     },
   });
 
+  const { data: rooms = [] } = useQuery({
+    queryKey: ["admin-rooms"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rooms").select("id, name").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const genderBalance = platformStats?.gender_balance as { men?: number; women?: number; nonbinary?: number } | null;
+
   // ═══ DROP MUTATIONS ═══
 
   const createDropMutation = useMutation({
