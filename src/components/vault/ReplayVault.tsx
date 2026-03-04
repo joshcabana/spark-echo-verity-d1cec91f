@@ -37,7 +37,6 @@ interface ReflectionRow {
 const ReplayVault = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-
   const isSubscriber =
     !!profile &&
     profile.subscription_tier !== "free" &&
@@ -58,7 +57,8 @@ const ReplayVault = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      const items = (data || []) as VaultRow[];
+
+      const items = (data || []) as unknown as VaultRow[];
 
       // Get reflection data for items that have one
       const reflectionIds = items
@@ -75,7 +75,7 @@ const ReplayVault = () => {
           .in("id", reflectionIds);
 
         if (reflections) {
-          (reflections as ReflectionRow[]).forEach((r: ReflectionRow) => {
+          (reflections as unknown as ReflectionRow[]).forEach((r: ReflectionRow) => {
             reflectionMap[r.id] = {
               ai_reflection: r.ai_reflection,
               feeling_score: r.feeling_score,
@@ -94,6 +94,7 @@ const ReplayVault = () => {
             supabase.rpc("get_spark_partner_profile", { _partner_user_id: uid })
           )
         );
+
         results.forEach(({ data: profiles }) => {
           if (profiles) {
             profiles.forEach((p: { user_id: string; display_name: string | null }) => {
