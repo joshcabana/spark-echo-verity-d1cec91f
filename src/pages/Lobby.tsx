@@ -54,7 +54,7 @@ const Lobby = () => {
   );
 
   // Fetch drops
-  const { data: drops = [] } = useQuery<Drop[]>({
+  const { data: drops = [], isLoading: dropsLoading } = useQuery<Drop[]>({
     queryKey: ["drops"],
     queryFn: async () => {
       const { data, error } = await supabase
