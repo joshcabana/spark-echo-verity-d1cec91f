@@ -733,6 +733,113 @@ const Admin = () => {
               </motion.div>
             )}
 
+            {/* ═══ DROPS MANAGEMENT ═══ */}
+            {section === "drops" && (
+              <motion.div key="drops" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h1 className="font-serif text-2xl text-foreground mb-1">Drop Scheduling</h1>
+                    <p className="text-sm text-muted-foreground/60">{adminDrops.length} drops total</p>
+                  </div>
+                  <Button variant="default" size="sm" onClick={() => { setDropForm(emptyDropForm); setDropFormOpen(true); }}>
+                    <Plus className="w-3.5 h-3.5 mr-1.5" /> Create Drop
+                  </Button>
+                </div>
+
+                <div className="rounded-lg border border-border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Room</TableHead>
+                        <TableHead>Scheduled</TableHead>
+                        <TableHead>Capacity</TableHead>
+                        <TableHead>Region</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {adminDrops.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground/50 py-8">No drops created yet</TableCell>
+                        </TableRow>
+                      )}
+                      {adminDrops.map((drop) => (
+                        <TableRow key={drop.id}>
+                          <TableCell className="font-medium text-foreground text-sm">{drop.title}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{(drop as unknown as { rooms?: { name: string } | null }).rooms?.name ?? "—"}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                            {format(new Date(drop.scheduled_at), "MMM d, h:mm a")}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{drop.max_capacity}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{drop.region}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={`text-[10px] ${
+                              drop.status === "live" ? "text-primary border-primary/30" :
+                              drop.status === "completed" ? "text-muted-foreground" : ""
+                            }`}>{drop.status}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDrop(drop)}>
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete "{drop.title}"?</AlertDialogTitle>
+                                    <AlertDialogDescription>This will permanently delete this drop and all associated RSVPs.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteDropMutation.mutate(drop.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Create Dialog */}
+                <Dialog open={dropFormOpen} onOpenChange={setDropFormOpen}>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Create Drop</DialogTitle></DialogHeader>
+                    <DropFormFields />
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setDropFormOpen(false)}>Cancel</Button>
+                      <Button onClick={() => createDropMutation.mutate(dropForm)} disabled={!dropForm.title || !dropForm.room_id || !dropForm.scheduled_at}>
+                        Create
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Edit Dialog */}
+                <Dialog open={!!editingDrop} onOpenChange={(open) => { if (!open) setEditingDrop(null); }}>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Edit Drop</DialogTitle></DialogHeader>
+                    <DropFormFields />
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setEditingDrop(null)}>Cancel</Button>
+                      <Button onClick={() => editingDrop && updateDropMutation.mutate({ id: editingDrop.id, form: dropForm })}>
+                        Save Changes
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </motion.div>
+            )}
+
             {/* ═══ PILOT METRICS ═══ */}
             {section === "pilot" && (
               <PilotMetrics />
