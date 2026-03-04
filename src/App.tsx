@@ -30,6 +30,12 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Friendfluence = lazy(() => import("./pages/Friendfluence"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const About = lazy(() => import("./pages/About"));
+const HowItWorks = lazy(() => import("./pages/HowItWorks"));
+const Safety = lazy(() => import("./pages/Safety"));
+const Terms = lazy(() => import("./pages/Terms"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Drops = lazy(() => import("./pages/Drops"));
+const Pricing = lazy(() => import("./pages/Pricing"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,6 +79,12 @@ const App = () => (
                     <Route path="/transparency" element={<Transparency />} />
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/about" element={<About />} />
+                    <Route path="/how-it-works" element={<HowItWorks />} />
+                    <Route path="/safety" element={<Safety />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/faq" element={<FAQ />} />
+                    <Route path="/drops" element={<Drops />} />
+                    <Route path="/pricing" element={<Pricing />} />
                     <Route path="/lander" element={<Navigate to="/" replace />} />
                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="/appeal" element={<ProtectedRoute><Appeal /></ProtectedRoute>} />

@@ -4,6 +4,7 @@ import StatsSection from "@/components/landing/StatsSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import InnovationsSection from "@/components/landing/InnovationsSection";
+import TrustSection from "@/components/landing/TrustSection";
 import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
 
@@ -16,6 +17,7 @@ const Landing = () => {
       <HowItWorksSection />
       <FeaturesSection />
       <InnovationsSection />
+      <TrustSection />
       <CTASection />
       <Footer />
     </div>

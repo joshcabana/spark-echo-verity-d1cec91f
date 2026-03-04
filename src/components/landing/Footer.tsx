@@ -1,6 +1,18 @@
 import { Link } from "react-router-dom";
 import VerityLogo from "@/components/VerityLogo";
 
+const footerLinks = [
+  { label: "How it works", to: "/how-it-works" },
+  { label: "Drops", to: "/drops" },
+  { label: "Safety", to: "/safety" },
+  { label: "Pricing", to: "/pricing" },
+  { label: "FAQ", to: "/faq" },
+  { label: "About", to: "/about" },
+  { label: "Transparency", to: "/transparency" },
+  { label: "Privacy", to: "/privacy" },
+  { label: "Terms", to: "/terms" },
+];
+
 const Footer = () => {
   return (
     <footer className="border-t border-border py-12">
@@ -12,20 +24,20 @@ const Footer = () => {
               © {new Date().getFullYear()}
             </span>
           </div>
-          <div className="flex items-center gap-8 text-sm text-muted-foreground">
-            <Link to="/about" className="hover:text-foreground transition-colors">
-              About
-            </Link>
-            <Link to="/transparency" className="hover:text-foreground transition-colors">
-              Transparency
-            </Link>
-            <a href="#how-it-works" className="hover:text-foreground transition-colors">
-              How it works
-            </a>
-            <Link to="/privacy" className="hover:text-foreground transition-colors">
-              Privacy
-            </Link>
-            <Link to="/auth" className="hover:text-primary transition-colors">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            {footerLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="hover:text-foreground transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <Link
+              to="/auth"
+              className="hover:text-primary transition-colors"
+            >
               Get verified
             </Link>
           </div>
@@ -36,7 +48,9 @@ const Footer = () => {
           <span className="text-xs text-muted-foreground/60">
             18+ verified · Nothing stored until mutual Spark
           </span>
-          <span className="text-xs text-muted-foreground/40 hidden sm:inline">·</span>
+          <span className="text-xs text-muted-foreground/40 hidden sm:inline">
+            ·
+          </span>
           <span className="text-xs text-muted-foreground/60">
             🇦🇺 Australian Built
           </span>
