@@ -336,23 +336,34 @@ const Lobby = () => {
         )}
 
         <div className="space-y-4">
-          {filtered.map((drop, i) => (
-            <DropCard
-              key={drop.id}
-              drop={drop}
-              rsvpCount={(rsvpCounts as Record<string, number>)[drop.id] ?? 0}
-              isRsvpd={rsvps.includes(drop.id)}
-              onRsvp={(id) => rsvpMutation.mutate(id)}
-              onCancel={(id) => cancelMutation.mutate(id)}
-              onJoin={handleJoin}
-              trustComplete={trustComplete}
-              index={i}
-              waitingCount={(waitingCounts as Record<string, number>)[drop.id] ?? 0}
-            />
-          ))}
+          {dropsLoading ? (
+            Array.from({ length: 3 }).map((_, i) => <DropCardSkeleton key={i} />)
+          ) : filtered.length === 0 ? (
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="text-center text-muted-foreground py-16 text-sm">
+              {filter === "my-rsvps" ? "You haven't RSVP'd to any Drops yet." : "No Drops scheduled — check back soon."}
+            </motion.p>
+          ) : (
+            filtered.map((drop, i) => (
+              <DropCard
+                key={drop.id}
+                drop={drop}
+                rsvpCount={(rsvpCounts as Record<string, number>)[drop.id] ?? 0}
+                isRsvpd={rsvps.includes(drop.id)}
+                onRsvp={(id) => rsvpMutation.mutate(id)}
+                onCancel={(id) => cancelMutation.mutate(id)}
+                onJoin={handleJoin}
+                trustComplete={trustComplete}
+                index={i}
+                waitingCount={(waitingCounts as Record<string, number>)[drop.id] ?? 0}
+              />
+            ))
+          )}
         </div>
 
-        {filtered.length === 0 && (
+        {!dropsLoading && filtered.length === 0 ? null : !dropsLoading && filtered.length > 0 ? null : null}
+
+        {filtered.length > 0 && (
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="text-center text-muted-foreground py-16 text-sm">
             {filter === "my-rsvps" ? "You haven't RSVP'd to any Drops yet." : "No Drops scheduled — check back soon."}
