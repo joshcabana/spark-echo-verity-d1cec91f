@@ -1,12 +1,20 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, X } from "lucide-react";
 import VerityLogo from "@/components/VerityLogo";
-import ThemeToggle from "@/components/ThemeToggle";
+
+const navLinks = [
+  { label: "How it works", to: "/how-it-works" },
+  { label: "Drops", to: "/drops" },
+  { label: "Safety", to: "/safety" },
+  { label: "Pricing", to: "/pricing" },
+];
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -27,27 +35,78 @@ const Navbar = () => {
     >
       <div className="container max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <VerityLogo className="h-7 w-auto" linkTo="/" />
-        <div className="flex items-center gap-4">
+
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-6">
+          {navLinks.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {link.label}
+            </Link>
+          ))}
           <Link
-            to="/about"
-            className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
+            to="/auth"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            About
+            Sign in
           </Link>
-          <a
-            href="#how-it-works"
-            className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            How it works
-          </a>
-          <ThemeToggle />
           <Link to="/auth">
-            <Button variant="gold-outline" size="sm">
-              Get verified
+            <Button variant="gold" size="sm">
+              RSVP for the next Drop
             </Button>
           </Link>
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+        >
+          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
       </div>
+
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="md:hidden bg-background/95 backdrop-blur-xl border-b border-border/50 overflow-hidden"
+          >
+            <div className="container max-w-6xl mx-auto px-6 py-4 flex flex-col gap-3">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setMobileOpen(false)}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link
+                to="/auth"
+                onClick={() => setMobileOpen(false)}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              >
+                Sign in
+              </Link>
+              <Link to="/auth" onClick={() => setMobileOpen(false)}>
+                <Button variant="gold" size="sm" className="w-full mt-2">
+                  RSVP for the next Drop
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 };
