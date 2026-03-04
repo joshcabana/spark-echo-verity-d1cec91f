@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthCapabilities } from "@/hooks/useAuthCapabilities";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import DropCard from "@/components/lobby/DropCard";
+import DropCardSkeleton from "@/components/lobby/DropCardSkeleton";
 import DropsFilter, { type FilterOption } from "@/components/lobby/DropsFilter";
 import MatchmakingOverlay from "@/components/lobby/MatchmakingOverlay";
 import BottomNav from "@/components/BottomNav";
