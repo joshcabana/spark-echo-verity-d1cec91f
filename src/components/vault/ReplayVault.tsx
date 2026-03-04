@@ -18,6 +18,22 @@ interface VaultItem {
   partner_name: string;
 }
 
+interface VaultRow {
+  id: string;
+  call_id: string;
+  title: string | null;
+  user_notes: string | null;
+  reflection_id: string | null;
+  partner_user_id: string;
+  created_at: string;
+}
+
+interface ReflectionRow {
+  id: string;
+  ai_reflection: string | null;
+  feeling_score: number | null;
+}
+
 const ReplayVault = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
@@ -35,28 +51,31 @@ const ReplayVault = () => {
 
       // Query vault items with reflection data
       const { data, error } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from("chemistry_vault_items" as any)
         .select("id, call_id, title, user_notes, reflection_id, partner_user_id, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      const items = (data || []) as any[];
+      const items = (data || []) as VaultRow[];
 
       // Get reflection data for items that have one
       const reflectionIds = items
-        .map((i: any) => i.reflection_id)
+        .map((i: VaultRow) => i.reflection_id)
         .filter(Boolean);
 
-      let reflectionMap: Record<string, { ai_reflection: string | null; feeling_score: number | null }> = {};
+      const reflectionMap: Record<string, { ai_reflection: string | null; feeling_score: number | null }> = {};
+
       if (reflectionIds.length > 0) {
         const { data: reflections } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .from("spark_reflections" as any)
           .select("id, ai_reflection, feeling_score")
           .in("id", reflectionIds);
 
         if (reflections) {
-          (reflections as any[]).forEach((r: any) => {
+          (reflections as ReflectionRow[]).forEach((r: ReflectionRow) => {
             reflectionMap[r.id] = {
               ai_reflection: r.ai_reflection,
               feeling_score: r.feeling_score,
@@ -66,7 +85,7 @@ const ReplayVault = () => {
       }
 
       // Fetch partner names
-      const partnerIds = [...new Set(items.map((i: any) => i.partner_user_id))];
+      const partnerIds = [...new Set(items.map((i: VaultRow) => i.partner_user_id))];
       const profileMap: Record<string, string> = {};
 
       if (partnerIds.length > 0) {
@@ -84,7 +103,7 @@ const ReplayVault = () => {
         });
       }
 
-      return items.map((item: any) => {
+      return items.map((item: VaultRow) => {
         const ref = item.reflection_id ? reflectionMap[item.reflection_id] : null;
         return {
           id: item.id,
