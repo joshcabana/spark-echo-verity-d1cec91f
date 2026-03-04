@@ -249,10 +249,11 @@ const Chat = () => {
         {messages.map((msg, i) => (
           <MessageBubble key={msg.id} message={msg} currentUserId={user?.id || ""} index={i} />
         ))}
+        {partnerTyping && <TypingIndicator />}
         <div ref={messagesEndRef} />
       </div>
 
-      <ChatComposer onSend={handleSend} />
+      <ChatComposer onSend={handleSend} onTyping={broadcastTyping} />
     </div>
   );
 };

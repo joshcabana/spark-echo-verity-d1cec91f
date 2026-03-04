@@ -62,9 +62,17 @@ const Settings = () => {
 
   const handleDeleteAccount = async () => {
     setDeletePending(true);
-    // RPC doesn't exist yet — show guidance toast
-    toast.info("Account deletion request submitted. Please contact privacy@getverity.com.au to complete the process.", { duration: 8000 });
-    setDeletePending(false);
+    try {
+      const { error } = await supabase.functions.invoke("delete-account");
+      if (error) throw error;
+      await signOut();
+      navigate("/");
+      toast.success("Your account has been deleted.");
+    } catch {
+      toast.error("Failed to delete account. Please contact privacy@getverity.com.au.");
+    } finally {
+      setDeletePending(false);
+    }
   };
 
   const handleSignOut = async () => {

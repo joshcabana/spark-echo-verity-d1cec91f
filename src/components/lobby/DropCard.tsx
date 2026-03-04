@@ -84,6 +84,11 @@ const DropCard = ({ drop, rsvpCount, isRsvpd, onRsvp, onCancel, onJoin, trustCom
       <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
         <span>{format(new Date(drop.scheduled_at), "EEE d MMM · h:mm a")}</span>
         <span>{drop.duration_minutes} min</span>
+        {waitingCount > 0 && isLive && (
+          <span className="flex items-center gap-1 text-primary/80">
+            <Users className="w-3 h-3" /> {waitingCount} waiting
+          </span>
+        )}
         {estimatedWaitMin > 0 && isRsvpd && (
           <span className="flex items-center gap-1 text-primary/70">
             <Clock className="w-3 h-3" /> ~{estimatedWaitMin} min wait
