@@ -447,8 +447,6 @@ const Admin = () => {
     },
   });
 
-  const genderBalance = platformStats?.gender_balance as { men?: number; women?: number; nonbinary?: number } | null;
-
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
